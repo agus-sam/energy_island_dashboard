@@ -756,8 +756,11 @@ Chart.defaults.font.size   = 10;
 
 const MONTHS       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_BREAKS = [744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016];
-const STACK_ORDER  = ['WTE','Geothermal','Hydro','Biomass','Biogas','Wind','Solar'];
-const FOSSIL       = new Set(['Natural Gas','Biodiesel','Diesel','HFO','Coal','Oil','LNG','CCGT','OCGT']);
+const STACK_ORDER  = ['WTE','Biomass', 'Geothermal','Hydro','Biogas','Wind','Solar'];
+const STORAGE_ORDER = ['PHS','BESS','Hydrogen'];
+
+const FOSSIL_ORDER = ['Biodiesel', 'Natural Gas',];
+const FOSSIL       = new Set(['Biodiesel','Natural Gas']);
 const VRE_SET      = new Set(['Solar','Wind']);
 const GC           = '#131a24';
 const TC           = '#7a8a9e';
@@ -1411,11 +1414,30 @@ function renderDashboard(d) {
     $('dispatch-title').textContent=`Hourly Dispatch — Worst Week (${worstWeekLabel})`;
     const ordGen=[...STACK_ORDER.filter(t=>genTechs.includes(t)),...genTechs.filter(t=>!STACK_ORDER.includes(t)&&!FOSSIL.has(t)),...genTechs.filter(t=>FOSSIL.has(t))];
     const dsets=[],legHtml=[];
-    ordGen.forEach(t=>{const data=worstWeek.map(h=>+(Math.max(0,h['gen_'+t+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(t);dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1});legHtml.push(legItem(t,c));}});
-    storTechs.forEach(s=>{const data=worstWeek.map(h=>+(Math.max(0,h['dis_'+s+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(s);dsets.push({type:'bar',label:s+' Dis.',data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1});legHtml.push(legItem(s+' Dis.',c));}});
+    const genStack = STACK_ORDER
+        .filter(t => ordGen.includes(t));
+    const fossilStack = ordGen.filter(t => FOSSIL.has(t));
+    genStack.forEach(t=>{const data=worstWeek.map(h=>+(Math.max(0,h['gen_'+t+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(t);dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1});legHtml.push(legItem(t,c));}});
+    STORAGE_ORDER.filter(s=>storTechs.includes(s)).forEach(s=>{const data=worstWeek.map(h=>+(Math.max(0,h['dis_'+s+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(s);dsets.push({type:'bar',label:s+' Dis.',data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1});legHtml.push(legItem(s+' Dis.',c));}});
+    fossilStack.forEach(t=>{
+      const data = worstWeek.map(h => +(Math.max(0,h['gen_'+t+'_mw']??0)).toFixed(3));
+      if(data.some(v=>v>0.001)){
+        const c = tc(t);
+        dsets.push({
+          type:'bar',
+          label:t,
+          data,
+          backgroundColor:c+'BB',
+          borderColor:c+'FF',
+          stack:'dispatch',
+          borderWidth:1
+        });
+        legHtml.push(legItem(t,c));
+      }
+    });
     dsets.push({type:'line',label:'Gross Demand',data:worstWeek.map(h=>+(h.gross_demand_mw??0).toFixed(3)),borderColor:'#c8f04e',borderWidth:2,pointRadius:0,tension:0.3,fill:false,order:0});
     legHtml.push(legItem('Gross Demand','#c8f04e',true));
-    $('dispatch-legend').innerHTML=legHtml.join('');
+    $('dispatch-legend').innerHTML=legHtml.reverse().join('');
     const wwLabels=Array.from({length:168},(_,i)=>{const absHour=worstStart+i;const mo=getMonth(absHour);const dayInMo=Math.floor((absHour-(mo===0?0:MONTH_BREAKS[mo-1]))/24)+1;const hod=absHour%24;if(hod===0)return `${MONTHS[mo]} D${dayInMo}`;if(hod===12)return `${String(hod).padStart(2,'0')}:00`;return '';});
     mkChart('dispatchChart',{type:'bar',data:{labels:wwLabels,datasets:dsets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},plugins:{legend:{display:false},tooltip:{...TT,callbacks:{title:(items)=>{const i=items[0].dataIndex;const absH=worstStart+i;const mo=getMonth(absH);const dayInMo=Math.floor((absH-(mo===0?0:MONTH_BREAKS[mo-1]))/24)+1;const hod=absH%24;return `${MONTHS[mo]} Day ${dayInMo}  ${String(hod).padStart(2,'0')}:00`;},label:ctx=>ctx.raw>0.01?`${ctx.dataset.label}: ${ctx.raw.toFixed(1)} MW`:null}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:TC,maxRotation:30,autoSkip:false,callback:(_,i)=>wwLabels[i]||null}},y:{stacked:true,grid:{color:GC},ticks:{color:TC,callback:v=>v+' MW'},beginAtZero:true}}}});
   }
@@ -1455,14 +1477,26 @@ function renderDashboard(d) {
   {
     const ordGen=[...STACK_ORDER.filter(t=>genTechs.includes(t)),...genTechs.filter(t=>!STACK_ORDER.includes(t)&&!FOSSIL.has(t)),...genTechs.filter(t=>FOSSIL.has(t))];
     const dsets=[],legHtml=[];
-    ordGen.forEach(t=>{const data=mGen[t].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:t,data,backgroundColor:tc(t)+'BB',borderColor:tc(t)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(t,tc(t)));}});
-    storTechs.forEach(s=>{const data=mDis[s].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:s+' Dis.',data,backgroundColor:tc(s)+'BB',borderColor:tc(s)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(s+' Dis.',tc(s)));}});
+    const genStack = genTechs.filter(t => !FOSSIL.has(t));
+    const fossilStack = genTechs.filter(t => FOSSIL.has(t));
+    genStack.forEach(t=>{const data=mGen[t].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:t,data,backgroundColor:tc(t)+'BB',borderColor:tc(t)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(t,tc(t)));}});
+    STORAGE_ORDER.filter(s=>storTechs.includes(s)).forEach(s=>{const data=mDis[s].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:s+' Dis.',data,backgroundColor:tc(s)+'BB',borderColor:tc(s)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(s+' Dis.',tc(s)));}});
+    fossilStack.forEach(t=>{
+      const data = mGen[t].map(v => +v.toFixed(3));
+      if(!data.some(v=>v>0.001)) return;
+    
+      const c = tc(t);
+    
+      dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'g',borderWidth:1 });
+    
+      legHtml.push(legItem(t,c));
+    });
     dsets.push({label:'Net Demand',type:'line',data:mDemand.map(v=>+v.toFixed(3)),borderColor:'#c8f04e',backgroundColor:'transparent',borderWidth:2.5,pointBackgroundColor:'#c8f04e',pointRadius:4,tension:0.35,fill:false});
     legHtml.push(legItem('Net Demand','#c8f04e',true));
-    $('monthly-legend').innerHTML=legHtml.join('');
+    $('monthly-legend').innerHTML=legHtml.reverse().join('');
     mkChart('monthlyChart',{type:'bar',data:{labels:MONTHS,datasets:dsets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},plugins:{legend:{display:false},tooltip:TT},scales:{x:{grid:{display:false},ticks:{color:TC}},y:{stacked:true,grid:{color:GC},ticks:{color:TC,callback:v=>v+' GWh'}}}}});
     const insights=[];
-    genTechs.filter(t=>!FOSSIL.has(t)).slice(0,2).forEach(t=>{const mx=Math.max(...mGen[t]);if(mx>0.001)insights.push(insightCard(MONTHS[mGen[t].indexOf(mx)],`Best ${t} month<br>${fmt(mx,1)} GWh`));});
+    genStack.filter(t=>!FOSSIL.has(t)).slice(0,2).forEach(t=>{const mx=Math.max(...mGen[t]);if(mx>0.001)insights.push(insightCard(MONTHS[mGen[t].indexOf(mx)],`Best ${t} month<br>${fmt(mx,1)} GWh`));});
     const fossilMon=Array(12).fill(0);fossils.forEach(t=>{for(let m=0;m<12;m++)fossilMon[m]+=mGen[t][m];});
     const mxFos=Math.max(...fossilMon);if(mxFos>0.001)insights.push(insightCard(MONTHS[fossilMon.indexOf(mxFos)],`Max backup month<br>${fmt(mxFos,1)} GWh`));
     insights.push(insightCard(MONTHS[worstREIdx],`Lowest RE month<br>${fmt(mREshare[worstREIdx],1)}% RE share`));
@@ -2187,11 +2221,14 @@ function drawDispatchMonth() {
     if (_charts['dpMonthChart']) { _charts['dpMonthChart'].destroy(); delete _charts['dpMonthChart']; }
 
     const STACK_ORD = ['WTE','Geothermal','Hydro','Biomass','Biogas','Wind','Solar'];
-    const ordGen = [
+    // generation (non fossil)
+    const genStack = [
       ...STACK_ORD.filter(t => _dpGenTechs.includes(t)),
       ..._dpGenTechs.filter(t => !STACK_ORD.includes(t) && !FOSSIL.has(t)),
-      ..._dpGenTechs.filter(t => FOSSIL.has(t)),
     ];
+    
+    // fossil
+    const fossilStack = _dpGenTechs.filter(t => FOSSIL.has(t));
 
     const xLabels = slice.map(h => {
       const hMo     = getMonth(h.hour);
@@ -2202,7 +2239,7 @@ function drawDispatchMonth() {
 
     const traces = [];
 
-    ordGen.forEach(t => {
+    genStack.forEach(t => {
       const y = slice.map(h => +Math.max(0, h['gen_'+t+'_mw'] ?? 0).toFixed(3));
       if (!y.some(v => v > 0.001)) return;
       const c = tc(t);
@@ -2213,7 +2250,7 @@ function drawDispatchMonth() {
         hovertemplate: `<b>${t}</b>: %{y:.2f} MW<extra></extra>`,
       });
     });
-    _dpStorTechs.forEach(s => {
+    STORAGE_ORDER.filter(s=>_dpStorTechs.includes(s)).forEach(s=>{
       const y = slice.map(h => +Math.max(0, h['dis_'+s+'_mw'] ?? 0).toFixed(3));
       if (!y.some(v => v > 0.001)) return;
       const c = tc(s);
@@ -2222,6 +2259,24 @@ function drawDispatchMonth() {
         stackgroup: 'one', fillcolor: c + '80',
         line: { color: c, width: 1, shape: 'spline', smoothing: 0.4 },
         hovertemplate: `<b>${s} Dis.</b>: %{y:.2f} MW<extra></extra>`,
+      });
+    });
+    fossilStack.forEach(t => {
+      const y = slice.map(h => +Math.max(0, h['gen_'+t+'_mw'] ?? 0).toFixed(3));
+      if (!y.some(v => v > 0.001)) return;
+    
+      const c = tc(t);
+    
+      traces.push({
+        x: xLabels,
+        y,
+        name: t,
+        type: 'scatter',
+        mode: 'lines',
+        stackgroup: 'one',
+        fillcolor: c + '80',
+        line: { color: c, width: 1, shape: 'spline', smoothing: 0.4 },
+        hovertemplate: `<b>${t}</b>: %{y:.2f} MW<extra></extra>`,
       });
     });
 
