@@ -1441,7 +1441,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
     });
     dsets.push({type:'line',label:'Gross Demand',data:worstWeek.map(h=>+(h.gross_demand_mw??0).toFixed(3)),borderColor:'#c8f04e',borderWidth:2,pointRadius:0,tension:0.3,fill:false, stack:'line', yAxisID:'y2',
           order:10, order:1000,order:0});
-    // --- Demand + charging (MW) line -----------------------------------
+    // --- Demand + Charging line -----------------------------------
     const chgSumWeek = worstWeek.map(h =>
       storTechs.reduce(
         (acc, s) => acc + Math.max(0, +(h['chg_' + s + '_mw'] ?? 0)),
@@ -1456,7 +1456,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
     
 dsets.push({
   type:'line',
-  label:'Demand + charging (MW)',
+  label:'Demand + Charging',
   data:demandPlusWeek,
   borderColor:'#c8f04e',
   borderWidth:2,
@@ -1472,7 +1472,7 @@ dsets.push({
 
 
     if (typeof legHtml !== 'undefined') {
-      legHtml.push(legItem('Demand + charging', '#c8f04e', true));
+      legHtml.push(legItem('Demand + Charging', '#c8f04e', true));
     }
     // --------------------------------------------------------------------
 
@@ -2342,11 +2342,11 @@ function drawDispatchMonth() {
     traces.push({
       x: xLabels,
       y: demPlusChgY,
-      name: 'Demand + charging (MW)',
+      name: 'Demand + Charging',
       type: 'scatter',
       mode: 'lines',
       line: { color: '#c8f04e', width: 2, dash: 'dash', shape: 'spline' },
-      hovertemplate: '<b>Demand + charging</b>: %{y:.2f} MW<extra></extra>'
+      hovertemplate: '<b>Demand + Charging</b>: %{y:.2f} MW<extra></extra>'
     });
     // --------------------------------------------------------------------
 
@@ -2355,8 +2355,8 @@ function drawDispatchMonth() {
 
     Plotly.react(plotDiv, traces, {
       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-      font: { family: "'DM Mono', monospace", size: 10, color: '#7a8a9e' },
-      margin: { l: 52, r: 16, t: 32, b: 48 },
+      font: { family: "'DM Mono', monospace", size: 10, color: '#7a8a9e' },legend: { orientation: "h", yanchor: "bottom", y: 1.02, xanchor: "center", x: 0.5, font: { size: 8 } },
+      margin: { l: 52, r: 16, t: 70, b: 48 },
       title: { text: `All Technologies · ${titleSuffix}`, font: { size: 10, color: '#7a8a9e' }, x: 0.5 },
       xaxis: {
         tickfont: { size: 10 }, gridcolor: 'rgba(0,0,0,0)', zeroline: false,
