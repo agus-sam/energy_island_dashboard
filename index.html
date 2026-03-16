@@ -1203,9 +1203,10 @@ function renderDashboard(d) {
       MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; monthSel.appendChild(o); });
     }
     if ([...techSel.options].some(o=>o.value===prevTech)) techSel.value=prevTech;
-    // Default to January on first page load; preserve the user's selection on scenario switch
-    monthSel.value = (prevMonth !== '') ? prevMonth : '0';
     const newTechSel=techSel.cloneNode(true), newMonthSel=monthSel.cloneNode(true), newWeekSel=weekSel.cloneNode(true);
+    // Set month AFTER cloneNode — cloneNode copies attributes not JS .value state
+    // Default to January ('0') on first load; preserve user selection on scenario switch
+    newMonthSel.value = (prevMonth !== '') ? prevMonth : '0';
     techSel.replaceWith(newTechSel); monthSel.replaceWith(newMonthSel); weekSel.replaceWith(newWeekSel);
     newTechSel.addEventListener('change',()=>drawDispatchMonth());
     newMonthSel.addEventListener('change',()=>drawDispatchMonth());
@@ -1242,7 +1243,10 @@ function renderDashboard(d) {
 
   // Annual totals
   let totalGenGwh=0,reGenGwh=0,totalDisGwh=0,totalChgGwh=0;
-  genTechs.forEach(t=>{ const e=eMix[t]||{}; const gwh=e.annual_gwh??(e.generation_mwh!=null?e.generation_mwh/1000:0); totalGenGwh+=gwh; if(!FOSSIL.has(t))reGenGwh+=gwh; });
+  // RE_FOR_KPI: Biodiesel counts as renewable for KPI/summary RE share (biofuel),
+  // but remains in FOSSIL for chart stacking, colour, and fossil-backup logic.
+  const RE_KPI_OVERRIDE = new Set(['Biodiesel']);
+  genTechs.forEach(t=>{ const e=eMix[t]||{}; const gwh=e.annual_gwh??(e.generation_mwh!=null?e.generation_mwh/1000:0); totalGenGwh+=gwh; if(!FOSSIL.has(t)||RE_KPI_OVERRIDE.has(t))reGenGwh+=gwh; });
   storTechs.forEach(s=>{ const e=eMix[s]||{}; totalGenGwh+=e.discharge_gwh??0; totalDisGwh+=e.discharge_gwh??0; totalChgGwh+=e.charge_gwh??0; reGenGwh+=e.discharge_gwh??0; });
 
   const totalDemMwh  = sysStats.total_demand_mwh??0;
