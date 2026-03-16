@@ -46,7 +46,7 @@
   .header-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:16px;opacity:0;animation:fadeUp .6s .1s forwards}
   h1{font-family:'Fraunces',serif;font-weight:900;font-size:clamp(30px,4.5vw,58px);line-height:1.02;letter-spacing:-.025em;max-width:700px;opacity:0;animation:fadeUp .7s .2s forwards}
   h1 em{font-style:italic;font-weight:300;color:var(--accent)}
-  .header-sub{margin-top:18px;font-size:14px;color:var(--muted);max-width:560px;line-height:1.75;opacity:0;animation:fadeUp .7s .35s forwards}
+  .header-sub{margin-top:18px;font-size:14px;color:var(--muted);max-width:min(560px,calc(100% - 340px));line-height:1.75;opacity:0;animation:fadeUp .7s .35s forwards}
   .header-meta{margin-top:32px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;opacity:0;animation:fadeUp .7s .45s forwards}
   .meta-pill{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:5px 14px;border-radius:20px;backdrop-filter:blur(8px);transition:border-color .2s}
   .meta-pill:hover{border-color:rgba(200,240,78,.2)}
@@ -96,16 +96,6 @@
   .chart-wrap{position:relative}
 
   /* LEGEND */
-
-function uniqueLegend(items){
-  const seen=new Set(); 
-  return items.filter(i=>{
-    if(seen.has(i.label)) return false;
-    seen.add(i.label); 
-    return true;
-  });
-}
-
   .legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:16px}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);transition:color .2s}
   .legend-item:hover{color:var(--text)}
@@ -141,7 +131,7 @@ function uniqueLegend(items){
   .no-data-msg{display:none;align-items:center;justify-content:center;height:100%;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);text-align:center;padding:20px;letter-spacing:.04em}
 
   /* FOOTER */
-  footer{padding:36px 56px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;background:linear-gradient(180deg,var(--bg) 0%,rgba(12,16,24,.5) 100%)}
+  footer{padding:28px 56px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;background:linear-gradient(180deg,var(--bg) 0%,rgba(12,16,24,.5) 100%)}
   .footer-credit{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.06em}
   .footer-credit strong{color:var(--accent)}
   .tech-stack{display:flex;gap:8px;flex-wrap:wrap}
@@ -212,7 +202,6 @@ function uniqueLegend(items){
 
   /* ── NARRATIVE CALLOUT ──────────────────────────────────────────── */
   .section-narrative{padding:2px 48px 18px;font-size:12px;color:var(--muted);line-height:1.7;display:flex;align-items:flex-start;gap:10px;margin-left:30px}
-  .section-narrative::before{content:'↳';color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;flex-shrink:0;margin-top:1px;opacity:.7}
   @media(max-width:960px){.section-narrative{padding-left:22px;padding-right:22px;margin-left:0}}
 
   /* ── EXPORT BUTTON ──────────────────────────────────────────────── */
@@ -221,9 +210,22 @@ function uniqueLegend(items){
 
   /* ── PRINT ──────────────────────────────────────────────────────── */
   @media print{
-    #section-nav,#export-btn,.dl-btn,#switch-loader{display:none!important}
-    body{background:#fff;color:#000}
-    .panel,.panel-wide,.kpi,.ai-card{break-inside:avoid}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    #section-nav,#export-btn,.dl-btn,#switch-loader,#loading,#kbd-hint,
+    .scenario-wrap,.csv-btn,#brand-tech-strip,
+    .dispatch-controls,#dp-all-legend{display:none!important}
+    body{background:#0c1018!important;color:#eaf0f8!important;font-size:11px}
+    header{border-bottom:1px solid #1e2a3a!important;padding:24px 32px!important;
+           background:#040609!important}
+    h1{font-size:24px!important}
+    .header-map-wrap{display:none!important}
+    .kpi-strip,.auto-insights{page-break-inside:avoid;break-inside:avoid}
+    .grid-2{grid-template-columns:1fr 1fr!important}
+    .panel,.panel-wide,.kpi,.ai-card,.insight{break-inside:avoid;page-break-inside:avoid}
+    footer{background:#040609!important;border-top:1px solid #1e2a3a!important}
+    canvas{max-width:100%!important}
+    .chart-wrap{break-inside:avoid;page-break-inside:avoid}
+    @page{margin:10mm;size:A4 landscape}
   }
 
   @media(max-width:760px){
@@ -325,7 +327,11 @@ function uniqueLegend(items){
   <div class="header-map-wrap hidden" id="header-map-wrap"><div id="geo-map"></div></div>
   <div class="header-tag">PyPSA · HiGHS · LP Capacity Expansion</div>
   <h1><span id="project-name">Island Energy</span><br><em>System</em> Dashboard</h1>
-  <p class="header-sub">LP capacity expansion and dispatch optimisation for an isolated microgrid. 8,760-hour resolution. Select an objective to compare scenarios.</p>
+  <p class="header-sub" id="header-sub-text">
+    <span id="project-desc-label" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Project Description</span>
+    <span id="project-desc-text" style="display:none;color:var(--text);font-weight:400"></span>
+    <span id="header-sub-static">LP capacity expansion and dispatch optimisation. Select an objective to compare scenarios.</span>
+  </p>
   <div class="header-meta">
     <div class="meta-pill">Horizon <span>8,760 h</span></div>
     <div class="scenario-wrap">
@@ -336,7 +342,7 @@ function uniqueLegend(items){
     <div class="meta-pill">Discount <span id="pill-discount">—</span></div>
     <div class="meta-pill">Grid Loss <span id="pill-glf">—</span></div>
     <div class="meta-pill">Technologies <span id="pill-techs">—</span></div>
-    <button id="export-btn" onclick="window.print()">
+    <button id="export-btn" onclick="exportPDF()">
       <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2h-1.5v1.5h-9V11H2zm5.25-9.5v7.19L4.78 6.22 3.72 7.28 8 11.56l4.28-4.28-1.06-1.06-2.47 2.47V1.5H7.25z"/></svg>
       Export PDF
     </button>
@@ -530,7 +536,7 @@ function uniqueLegend(items){
       <div class="ctrl-wrap">
         <label for="soc-stor-sel">Storage</label>
         <select id="soc-stor-sel">
-          <option value="all">Both Storage</option>
+          <option value="all">All Storages</option>
         </select>
       </div>
       <div class="ctrl-wrap">
@@ -623,7 +629,7 @@ function uniqueLegend(items){
       <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Fuel Cost</div>
     </div>
     <div class="chart-wrap" style="height:230px"><canvas id="costStackChart"></canvas></div>
-    <div class="insight-grid-4" id="cost-insights" style="margin-top:16px"></div>
+    <div class="insight-grid-4" id="cost-insights" style="margin-top:16px;grid-template-columns:repeat(5,1fr)"></div>
   </div>
 </div>
 
@@ -713,32 +719,62 @@ function uniqueLegend(items){
   </div>
 </div>
 
+<!-- Technology Brand / Specification strip — auto-populated from JSON brand_technologies -->
+<div id="brand-tech-strip" style="display:none;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:20px 48px">
+  <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px">Selected Technologies — Equipment Specification</div>
+  <div id="brand-tech-cards" style="display:flex;flex-wrap:wrap;gap:12px"></div>
+</div>
+
 </main>
 
 <div class="kbd-hint" id="kbd-hint">Press <kbd>1</kbd>–<kbd>7</kbd> to navigate sections · <kbd>←</kbd><kbd>→</kbd> switch scenario</div>
 
 <footer>
-  <div class="footer-credit">Built with <strong>PyPSA</strong> + <strong>HiGHS</strong> · <span id="footer-techs"></span></div>
-  <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-    <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em">Agus Samsudin</div>
-    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase">Energy System Modeler</div>
-    <div style="display:flex;gap:12px;align-items:center">
-      <a href="https://www.linkedin.com/in/agussam/" target="_blank" rel="noopener" title="LinkedIn" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:border-color .2s;text-decoration:none" onmouseover="this.style.borderColor='#0A66C2'" onmouseout="this.style.borderColor='var(--border)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0A66C2"/>
-        </svg>
+  <!-- LEFT: Author identity + social links — hardcoded, never changes -->
+  <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+    <div>
+      <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:var(--text);letter-spacing:-.02em;line-height:1">Agus Samsudin</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;margin-top:3px">Energy System Modeller</div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+      <!-- Home -->
+      <a href="https://agus-sam.github.io" target="_blank" rel="noopener" title="Portfolio Home"
+         style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:border-color .2s;text-decoration:none"
+         onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a8a9e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </a>
-      <a href="https://github.com/agus-sam" target="_blank" rel="noopener" title="GitHub" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:border-color .2s;text-decoration:none" onmouseover="this.style.borderColor='#7a8a9e'" onmouseout="this.style.borderColor='var(--border)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" fill="#f0f6fc"/>
-        </svg>
+      <!-- LinkedIn -->
+      <a href="https://www.linkedin.com/in/agussam/" target="_blank" rel="noopener" title="LinkedIn"
+         style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:border-color .2s;text-decoration:none"
+         onmouseover="this.style.borderColor='#0A66C2'" onmouseout="this.style.borderColor='var(--border)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0A66C2"/></svg>
+      </a>
+      <!-- GitHub -->
+      <a href="https://github.com/agus-sam" target="_blank" rel="noopener" title="GitHub"
+         style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:border-color .2s;text-decoration:none"
+         onmouseover="this.style.borderColor='#7a8a9e'" onmouseout="this.style.borderColor='var(--border)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" fill="#f0f6fc"/></svg>
       </a>
     </div>
   </div>
-  <div class="tech-stack">
-    <div class="tech-tag">PyPSA</div><div class="tech-tag">HiGHS</div>
-    <div class="tech-tag">linopy</div><div class="tech-tag">Python</div>
-    <div class="tech-tag">Pandas</div><div class="tech-tag">Chart.js</div><div class="tech-tag">Plotly</div>
+
+  <!-- CENTRE: Built-with text + tech stack tags — centred between banners -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;text-align:center;padding:0 24px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.7">
+      Built with <strong style="color:var(--text)">PyPSA</strong> · <strong style="color:var(--text)">HiGHS</strong> · <span id="footer-techs" style="color:var(--muted)"></span>
+    </div>
+    <div class="tech-stack" style="gap:5px;justify-content:center">
+      <div class="tech-tag">PyPSA</div><div class="tech-tag">HiGHS</div>
+      <div class="tech-tag">linopy</div><div class="tech-tag">Python</div>
+      <div class="tech-tag">Pandas</div><div class="tech-tag">Chart.js</div><div class="tech-tag">Plotly</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Project identity — automated from JSON, hardcoded position -->
+  <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;text-align:right;flex-shrink:0">
+    <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.01em;line-height:1.1" id="footer-island-name">Island Energy System</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:2px">Low-Carbon Energy System Modelling</div>
+    <div style="font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);margin-top:3px;max-width:260px;line-height:1.5" id="footer-tagline">LP capacity expansion &amp; dispatch optimisation at 8,760&#8209;hour resolution</div>
   </div>
 </footer>
 
@@ -812,16 +848,25 @@ const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—';
   const n = Number(v);
-  const dec = Math.min(d, 1);
   const absN = Math.abs(n);
-  let val = n, unit = '';
-  if (absN >= 1e9) { val = n / 1e9; unit = ' B'; }
-  else if (absN >= 1e6) { val = n / 1e6; unit = ' M'; }
-  else if (absN >= 1e3) { val = n / 1e3; unit = ' k'; }
-  const p = Math.pow(10, dec);
-  const rounded = Math.round(val * p) / p;
-  if (Number.isInteger(rounded)) return String(rounded) + unit;
-  return rounded.toFixed(dec).replace(/\.0+$/, '') + unit;
+  // hasDec: value has a meaningful fractional part AND caller wants decimals shown
+  const hasDec = d > 0 && !Number.isInteger(n);
+  // Abbreviate only at 10,000+ (4-digit rule: 9999 stays 9999, 10000 → 10 k, 12345 → 12 k)
+  if (absN >= 1e9) {
+    const r = hasDec ? Math.round(n/1e8)/10 : Math.round(n/1e9);
+    return (hasDec && !Number.isInteger(r) ? r.toFixed(1) : String(r)) + ' B';
+  }
+  if (absN >= 1e6) {
+    const r = hasDec ? Math.round(n/1e5)/10 : Math.round(n/1e6);
+    return (hasDec && !Number.isInteger(r) ? r.toFixed(1) : String(r)) + ' M';
+  }
+  if (absN >= 1e4) {
+    const r = hasDec ? Math.round(n/100)/10 : Math.round(n/1000);
+    return (hasDec && !Number.isInteger(r) ? r.toFixed(1) : String(r)) + ' k';
+  }
+  // Below 10,000: show raw, max 1 decimal if fractional
+  if (hasDec) { const r = Math.round(n*10)/10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+  return String(Math.round(n));
 };
 
 // human: auto-detects thousands (k), millions (M) and billions (B).
@@ -857,16 +902,18 @@ const humanShort = (v, d = 1) => {
   return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(dec).replace(/\.0+$/, '')) + (unit ? (' ' + unit) : '');
 };
 
-// fmtCur: format a raw currency value with ONE unit suffix (k / M / B + currency symbol).
-// Never calls fmt() on the divided result — just plain rounding, max 1 decimal.
+// fmtCur: format a raw currency value. Abbreviates only at 10,000+ (4-digit rule).
+// Shows '0' for zero values (not '—') so CO₂ tax card always renders a number.
 const fmtCur = (v, cur) => {
-  if (v == null || Number.isNaN(Number(v)) || Number(v) === 0) return '—';
-  const n = Math.abs(Number(v));
+  if (v == null || Number.isNaN(Number(v))) return '—';
+  const raw = Number(v);
+  if (raw === 0) return `0 ${cur}`;
+  const n = Math.abs(raw);
   let val, unit;
-  if      (n >= 1e9) { val = Number(v) / 1e9; unit = `B ${cur}`; }
-  else if (n >= 1e6) { val = Number(v) / 1e6; unit = `M ${cur}`; }
-  else if (n >= 1e3) { val = Number(v) / 1e3; unit = `k ${cur}`; }
-  else               { val = Number(v);        unit = cur;         }
+  if      (n >= 1e9) { val = raw / 1e9; unit = `B ${cur}`; }
+  else if (n >= 1e6) { val = raw / 1e6; unit = `M ${cur}`; }
+  else if (n >= 1e4) { val = raw / 1e3; unit = `k ${cur}`; }
+  else               { val = raw;        unit = cur;         }
   const rounded = Math.round(val * 10) / 10;
   const str = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   return `${str} ${unit}`;
@@ -876,8 +923,10 @@ const insightCard = (num, lbl) =>
   `<div class="insight"><div class="insight-num">${num}</div><div class="insight-label">${lbl}</div></div>`;
 const balRow = (id, lbl, col, txt) =>
   `<div class="balance-row"><div class="balance-label">${lbl}</div><div class="balance-track"><div class="balance-fill" id="b-${id}" style="background:${col}"></div></div><div class="balance-val">${txt}</div></div>`;
-const cfHtml = (name, cf, col) =>
-  `<div class="cf-row"><div class="cf-name">${name}</div><div class="cf-bar-wrap"><div class="cf-bar" id="cf-${name}" style="background:${col}">${cf.toFixed(1)}%</div></div></div>`;
+const cfHtml = (name, cf, col) => {
+  const safeId = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return `<div class="cf-row"><div class="cf-name">${name}</div><div class="cf-bar-wrap"><div class="cf-bar" id="cf-${safeId}" style="background:${col}">${cf.toFixed(1)}%</div></div></div>`;
+};
 const legItem = (name, col, circle) =>
   circle
     ? `<div class="legend-item"><div class="legend-dot-circle" style="background:${col}"></div>${name}</div>`
@@ -1056,6 +1105,18 @@ function normalise(d) {
 }
 
 
+// fmtLcoe: show raw number up to 4 significant figures, max 1 decimal — no k/M scaling
+// Defined at module level so it's available throughout (including early banner renders).
+function fmtLcoe(v) {
+  if (!v && v !== 0) return '—';
+  const n = Number(v);
+  if (n === 0) return '0';
+  if (n >= 1000) return String(Math.round(n));
+  if (n >= 100)  { const r = Math.round(n * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+  if (n >= 10)   { const r = Math.round(n * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+  return n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // RENDER DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════
@@ -1066,19 +1127,6 @@ function renderDashboard(d) {
   const lcoeSumm = d.lcoe_summary || {};
   const co2Summ  = d.co2_summary  || {};
   const sysStats = lcoeSumm._system || d.kpis || {};
-
-  // ── Carbon tax banner card ─────────────────────────────────────
-  const carbonTax = co2Summ?._system?.total_carbon_tax_eur ?? 0;
-  const banner = document.getElementById('system-summary-banner');
-  if (banner) {
-    const card = document.createElement('div');
-    card.className='insight';
-    card.innerHTML=`
-      <div class="insight-num">${fmtCur(carbonTax, cur)}</div>
-      <div class="insight-label">Total Carbon Tax Paid</div>
-    `;
-    banner.appendChild(card);
-  }
 
   const hourly   = getHourly(d);
   const cur      = meta.currency || '€';
@@ -1096,6 +1144,14 @@ function renderDashboard(d) {
     $('geo-lat').textContent    = gLat  != null ? Number(gLat).toFixed(4)+'°' : '—';
     $('geo-lon').textContent    = gLon  != null ? Number(gLon).toFixed(4)+'°' : '—';
     $('geo-height').textContent = gHt   != null ? Number(gHt).toFixed(0)+' m' : '—';
+    // Project description in header
+    const projDesc = geo.project_description || geo.Project_Description || '';
+    if (projDesc) {
+      const lbl = $('project-desc-label'), txt = $('project-desc-text'), sta = $('header-sub-static');
+      if (lbl) lbl.style.display = 'block';
+      if (txt) { txt.style.display = 'block'; txt.textContent = projDesc; }
+      if (sta) sta.style.display = 'block';
+    }
     if (gLat != null && gLon != null) {
       const lat = Number(gLat), lon = Number(gLon);
       if (!_geoMap) {
@@ -1140,10 +1196,15 @@ function renderDashboard(d) {
       techSel.appendChild(o);
     });
     if (!monthSel.options.length) {
+      // Full Year option first
+      const fyOpt = document.createElement('option');
+      fyOpt.value = 'all'; fyOpt.textContent = '— Full Year —';
+      monthSel.appendChild(fyOpt);
       MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; monthSel.appendChild(o); });
     }
     if ([...techSel.options].some(o=>o.value===prevTech)) techSel.value=prevTech;
-    if (prevMonth!=='') monthSel.value=prevMonth;
+    // Default to January on first page load; preserve the user's selection on scenario switch
+    monthSel.value = (prevMonth !== '') ? prevMonth : '0';
     const newTechSel=techSel.cloneNode(true), newMonthSel=monthSel.cloneNode(true), newWeekSel=weekSel.cloneNode(true);
     techSel.replaceWith(newTechSel); monthSel.replaceWith(newMonthSel); weekSel.replaceWith(newWeekSel);
     newTechSel.addEventListener('change',()=>drawDispatchMonth());
@@ -1161,6 +1222,23 @@ function renderDashboard(d) {
   $('pill-glf').textContent      = ((meta.grid_loss_factor||0.04)*100).toFixed(0)+'%';
   $('pill-techs').textContent    = allActiveTechs.length+' technologies';
   $('footer-techs').textContent  = allActiveTechs.join(' · ');
+
+  // Footer island name — from geographic data
+  {
+    const geoName = d.geographic?.name || d.meta?.geographic?.name || '';
+    const footerIsland = $('footer-island-name');
+    const footerTagline = $('footer-tagline');
+    if (footerIsland && geoName) {
+      footerIsland.textContent = geoName + ' — Energy System';
+    }
+    if (footerTagline) {
+      const obj = meta.objective || 'LP Optimisation';
+      const allModelledCount = (meta.technologies?.generation?.length||0)
+                             + (meta.technologies?.balancing?.length||0)
+                             + (meta.technologies?.storage?.length||0);
+      footerTagline.textContent = `${obj} · ${allModelledCount}-technology LP optimisation at 8,760-hour resolution`;
+    }
+  }
 
   // Annual totals
   let totalGenGwh=0,reGenGwh=0,totalDisGwh=0,totalChgGwh=0;
@@ -1246,19 +1324,6 @@ function renderDashboard(d) {
   allTechs.forEach(t=>{const e=eMix[t];if(!e)return;const s=e.share_pct??0;if(s>domShare){domShare=s;domTech=t;}});
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
-  // fmtLcoe: show raw number up to 4 significant figures, max 1 decimal — no k/M scaling
-  const fmtLcoe = v => {
-    if (!v) return '—';
-    const n = Number(v);
-    // If the number is >= 1000 just round to nearest integer (4 digits)
-    if (n >= 1000) return String(Math.round(n));
-    // If >= 100 show 1 decimal only if it adds info
-    if (n >= 100)  { const r = Math.round(n * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
-    // If >= 10 show 1 decimal
-    if (n >= 10)   { const r = Math.round(n * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
-    // Small values (e.g. 0.444 €/kWh) — show 3 decimal places
-    return n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
-  };
   $('kpi-lcoe').innerHTML       = `${fmtLcoe(sysLcoe)}<sup>&thinsp;${cur}/MWh</sup>`;
   $('kpi-lcoe-sub').textContent = 'Levelised cost of electricity';
   {
@@ -1292,15 +1357,15 @@ function renderDashboard(d) {
     {tag:'Peak Demand',       val:fmt(peakMw,1)+' MW',sub:`${MONTHS[getMonth(peakH)]} · ${String(peakH%24).padStart(2,'0')}:00`},
     {tag:'Cheapest Source',   val:cheapTech||'—',     sub:cheapVal<Infinity?`${fmt(cheapVal,1)} ${cur}/MWh`:''},
     {tag:'Dominant Source',   val:domTech||'—',       sub:domShare>0?`${fmt(domShare,1)}% of supply`:''},
+    {tag:'CO₂ Tax',           val:(()=>{const v=co2Summ?._system?.total_carbon_tax_eur??0;return v>0?fmtCur(v,cur):`0 ${cur}`;})(),
+                              sub:`${fmtLcoe(co2Summ?._system?.carbon_tax_rate_eur_per_tco2??meta.carbon_tax_rate??0)} ${cur}/tCO₂ · ${fmt(totalCo2/1000,1)} ktCO₂`},
     {tag:'VRE Curtailment',   val:`${fmt(totalCurtGwh,1)} GWh`,sub:totalCurtGwh>0?`${fmt(totalCurtGwh/(netDemGwh+totalCurtGwh)*100,1)}% of VRE potential`:'No curtailment'},
     {tag:'System Load Factor',val:`${fmt(avgDemMw/peakMw*100,1)}%`,sub:`avg ${fmt(avgDemMw,1)} MW ÷ peak ${fmt(peakMw,1)} MW`},
     {tag:'System LCOE', val:`${fmtLcoe(sysLcoe/1000)} ${cur}/kWh`, sub:`${fmtLcoe(sysLcoe)} ${cur}/MWh`},
     ...(()=>{
-      // Overnight CAPEX
       let capexBanner=0,hasC=false;
       allTechs.forEach(t=>{const l=lcoeSumm[t];if(!l)return;const raw=l.total_capex??l.total_capex_EUR??l.capex_total??null;if(raw!=null){capexBanner+=raw;hasC=true;}else if(l.annualised_capex!=null){capexBanner+=l.annualised_capex/(meta.discount_rate||0.08);hasC=true;}});
       if(!hasC) capexBanner=totalCost/(meta.discount_rate||0.08);
-      // Total annual OPEX
       let opexTotal=sysStats.total_annual_opex??0;
       if(!opexTotal) allTechs.forEach(t=>{const l=lcoeSumm[t];if(!l)return;opexTotal+=(l.annual_opex??0);});
       return [
@@ -1324,18 +1389,51 @@ function renderDashboard(d) {
     if(spCost){const mCostProxy=mDemand.map(v=>v*(totalCost/(totalDemGwh*1000||1)));const maxC=Math.max(...mCostProxy,0.001);spCost.innerHTML=mCostProxy.map((v,i)=>`<div class="spark-bar" style="height:${Math.max(2,(v/maxC)*22)}px;background:#9B5DE5" title="${MONTHS[i]}"></div>`).join('');}
   }
 
-  // Section narratives
+  // Section narratives — professional, data-driven, no repetition
   {
-    const domTechShare=domShare>0?fmt(domShare,1):'—';
-    const rteStr=totalChgGwh>0?`Storage round-trip efficiency: ${fmt(totalDisGwh/totalChgGwh*100,0)}%.`:'';
-    const curtStr=totalCurtGwh>0.1?` ${fmt(totalCurtGwh,1)} GWh VRE curtailed.`:' No VRE curtailment detected.';
-    const narratives={
-      'narr-A': `${allActiveTechs.length} technologies in optimal solution · ${activeTechs.filter(t=>!FOSSIL.has(t)).length} renewable types.`,
-      'narr-B': `Worst week: ${worstWeekLabel} · Select technology and month to drill into hourly resolution.`,
-      'narr-C': `${domTech||'—'} dominates at ${domTechShare}% of supply · ${fmt(reShare,0)}% renewable share · total dispatched ${fmt(totalGenGwh,1)} GWh/yr.`,
-      'narr-D': `Peak demand ${fmt(peakMw,1)} MW · avg ${fmt(avgDemMw,1)} MW · load factor ${fmt(avgDemMw/peakMw*100,1)}%.${curtStr} ${rteStr}`,
-      'narr-E': `Total annualised cost: ${fmtCur(totalCost,cur)}/yr · system LCOE: ${fmtLcoe(sysLcoe)} ${cur}/MWh · cheapest: ${cheapTech||'—'} at ${cheapVal<Infinity?fmtLcoe(cheapVal):'—'} ${cur}/MWh.`,
-      'narr-F': co2Int>0?`CF range: ${(() => { let cfs = []; genTechs.forEach(t => { const cap = caps[t]?.capacity_mw ?? 0; if (cap < 0.001) return; const genMwh = (eMix[t]?.annual_gwh ?? 0) * 1000; cfs.push((genMwh / (cap * 8760) * 100).toFixed(0)); }); return cfs.length ? Math.min(...cfs) + '–' + Math.max(...cfs) + '%' : '—'; })()}  ·  CO₂ intensity: ${fmt(co2Int,1)} gCO₂/kWh · total ${fmt(totalCo2/1000,1)} ktCO₂/yr.`:`CF range: ${(() => { let cfs = []; genTechs.forEach(t => { const cap = caps[t]?.capacity_mw ?? 0; if (cap < 0.001) return; const genMwh = (eMix[t]?.annual_gwh ?? 0) * 1000; cfs.push((genMwh / (cap * 8760) * 100).toFixed(0)); }); return cfs.length ? Math.min(...cfs) + '–' + Math.max(...cfs) + '%' : '—'; })()} · Zero direct emissions.${curtStr}`,
+    const domTechShare = domShare > 0 ? fmt(domShare,1) : '—';
+    const rteStr  = totalChgGwh > 0 ? ` Storage RTE: ${fmt(totalDisGwh/totalChgGwh*100,0)}%.` : '';
+    const curtStr = totalCurtGwh > 0.1
+      ? ` ${fmt(totalCurtGwh,1)} GWh VRE potential curtailed (${fmt(totalCurtGwh/(netDemGwh+totalCurtGwh)*100,1)}% of resource).`
+      : ' Full VRE resource utilised — no curtailment.';
+    const loadFactor = fmt(avgDemMw/peakMw*100,1);
+
+    // Active renewable count and fossil count
+    const reCount  = activeTechs.filter(t=>!FOSSIL.has(t)).length;
+    const fosCount = activeTechs.filter(t=>FOSSIL.has(t)).length;
+
+    // CF range (active generators only)
+    const cfRange = (() => {
+      const cfs = [];
+      genTechs.forEach(t => {
+        const cap = caps[t]?.capacity_mw ?? 0; if (cap < 0.001) return;
+        const genMwh = (eMix[t]?.annual_gwh ?? 0) * 1000;
+        cfs.push(+(genMwh / (cap * 8760) * 100).toFixed(0));
+      });
+      return cfs.length > 1 ? `${Math.min(...cfs)}–${Math.max(...cfs)}%` : cfs.length ? `${cfs[0]}%` : '—';
+    })();
+
+    // Cheapest tech label
+    const cheapStr = cheapTech && cheapVal < Infinity
+      ? `${cheapTech} is the lowest-cost source at ${fmtLcoe(cheapVal)} ${cur}/MWh.`
+      : '';
+
+    const narratives = {
+      'narr-A': `Optimiser selected ${allActiveTechs.length} of ${
+        (meta.technologies?.generation?.length||0)+(meta.technologies?.balancing?.length||0)+(meta.technologies?.storage?.length||0)
+      } modelled technologies — ${reCount} renewable${reCount!==1?'s':''}${fosCount>0?`, ${fosCount} balancing source${fosCount!==1?'s':''}`:''}${activeStorTechs.length>0?`, ${activeStorTechs.length} storage type${activeStorTechs.length!==1?'s':''}`:''}.`,
+
+      'narr-B': `Critical supply week: ${worstWeekLabel}. Use the technology and month filters below to interrogate any period at full hourly resolution.`,
+
+      'narr-C': `${domTech||'—'} is the dominant source at ${domTechShare}% of gross supply. ${fmt(reShare,0)}% of dispatched energy is renewable. Total annual output: ${fmt(totalGenGwh,1)} GWh serving ${fmt(netDemGwh,0)} GWh net demand.`,
+
+      'narr-D': `System peak ${fmt(peakMw,1)} MW · average load ${fmt(avgDemMw,1)} MW · load factor ${loadFactor}%.${curtStr}${rteStr}`,
+
+      'narr-E': `${cheapStr} System LCOE ${fmtLcoe(sysLcoe)} ${cur}/MWh on total annualised cost of ${fmtCur(totalCost,cur)}/yr. Overnight capital requirement: ${fmtCur((()=>{let s=0;allTechs.forEach(t=>{const l=lcoeSumm[t];if(l?.total_capex)s+=l.total_capex;});return s;})(),cur)}.`,
+
+      'narr-F': co2Int > 0
+        ? `Capacity factors span ${cfRange}. Grid-attributed CO₂ intensity: ${fmt(co2Int,1)} gCO₂/kWh — ${fmt(totalCo2/1000,1)} ktCO₂/yr total. Direct-generation emissions are zero.`
+        : `Capacity factors span ${cfRange}. Zero direct combustion emissions across all on-site generation.${curtStr}`,
     };
     Object.entries(narratives).forEach(([id,text])=>{const el=$(id);if(el)el.textContent=text;});
   }
@@ -1398,10 +1496,15 @@ function renderDashboard(d) {
 
   // Batch A (immediate): capacity charts — above the fold on load
   function _renderChartsA() {
-  // ── A: Installed Capacity bar ──────────────────────────────────────────
+  // ── A: Installed Capacity bar — only selected (non-zero) technologies ──
   {
-    const data=allTechs.map(t=>{const c=caps[t];return+(c?.capacity_mw??c?.power_mw??0).toFixed(3);});
-    mkChart('capChart',{type:'bar',data:{labels:allTechs,datasets:[{label:'MW',data,backgroundColor:allTechs.map(t=>tc(t)+'BB'),borderColor:allTechs.map(t=>tc(t)+'FF'),borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.raw} MW`}}},scales:{x:{grid:{display:false},ticks:{color:TC,maxRotation:30}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>v+' MW'},beginAtZero:true}}}});
+    // Filter to technologies actually selected by the optimiser
+    const activeTechsA = allTechs.filter(t => {
+      const c = caps[t];
+      return (c?.capacity_mw ?? c?.power_mw ?? 0) > 0.001;
+    });
+    const data = activeTechsA.map(t => { const c = caps[t]; return +(c?.capacity_mw ?? c?.power_mw ?? 0).toFixed(3); });
+    mkChart('capChart',{type:'bar',data:{labels:activeTechsA,datasets:[{label:'MW',data,backgroundColor:activeTechsA.map(t=>tc(t)+'BB'),borderColor:activeTechsA.map(t=>tc(t)+'FF'),borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.raw} MW`}}},scales:{x:{grid:{display:false},ticks:{color:TC,maxRotation:30}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>v+' MW'},beginAtZero:true}}}});
   }
 
   // ── A: Potential vs Installed capacity ───────────────────────────────────
@@ -1464,8 +1567,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
         legHtml.push(legItem(t,c));
       }
     });
-    dsets.push({type:'line',label:'Gross Demand',data:worstWeek.map(h=>+(h.gross_demand_mw??0).toFixed(3)),borderColor:'#c8f04e',borderWidth:2,pointRadius:0,tension:0.3,fill:false, stack:'line', yAxisID:'y2',
-          order:10, order:1000,order:0});
+    dsets.push({type:'line',label:'Gross Demand',data:worstWeek.map(h=>+(h.gross_demand_mw??0).toFixed(3)),borderColor:'#c8f04e',borderWidth:2,pointRadius:0,tension:0.3,fill:false,yAxisID:'y2',order:0});
     // --- Demand + Charging line -----------------------------------
     const chgSumWeek = worstWeek.map(h =>
       storTechs.reduce(
@@ -1489,10 +1591,8 @@ dsets.push({
   fill:false,
   pointRadius:0,
   tension:0,
-  cubicInterpolationMode:'monotone',
   yAxisID:'y2',
-          order:11,
-  order:1001
+  order:1
 });
 
 
@@ -1545,19 +1645,16 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
     const dsets=[],legHtml=[];
     const genStack = genTechs.filter(t => !FOSSIL.has(t));
     const fossilStack = genTechs.filter(t => FOSSIL.has(t));
-    genStack.forEach(t=>{const data=mGen[t].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:t,data,backgroundColor:tc(t)+'BB',borderColor:tc(t)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(t,tc(t)));}});
-    STORAGE_ORDER.filter(s=>storTechs.includes(s)).forEach(s=>{const data=mDis[s].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:s+' Dis.',data,backgroundColor:tc(s)+'BB',borderColor:tc(s)+'FF',borderWidth:1,stack:'g',borderRadius:2});legHtml.push(legItem(s+' Dis.',tc(s)));}});
+    genStack.forEach(t=>{const data=mGen[t].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:t,data,backgroundColor:tc(t)+'BB',borderColor:tc(t)+'FF',borderWidth:1,stack:'g',borderRadius:2,order:1});legHtml.push(legItem(t,tc(t)));}});
+    STORAGE_ORDER.filter(s=>storTechs.includes(s)).forEach(s=>{const data=mDis[s].map(v=>+v.toFixed(3));if(data.some(v=>v>0.001)){dsets.push({label:s+' Dis.',data,backgroundColor:tc(s)+'BB',borderColor:tc(s)+'FF',borderWidth:1,stack:'g',borderRadius:2,order:1});legHtml.push(legItem(s+' Dis.',tc(s)));}});
     fossilStack.forEach(t=>{
       const data = mGen[t].map(v => +v.toFixed(3));
       if(!data.some(v=>v>0.001)) return;
-    
       const c = tc(t);
-    
-      dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'g',borderWidth:1 });
-    
+      dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'g',borderWidth:1,order:1});
       legHtml.push(legItem(t,c));
     });
-    dsets.push({label:'Net Demand',type:'line',data:mDemand.map(v=>+v.toFixed(3)),borderColor:'#c8f04e',backgroundColor:'transparent',borderWidth:2.5,pointBackgroundColor:'#c8f04e',pointRadius:4,tension:0.35,fill:false});
+    dsets.push({label:'Net Demand',type:'line',data:mDemand.map(v=>+v.toFixed(3)),borderColor:'#c8f04e',backgroundColor:'transparent',borderWidth:2.5,pointBackgroundColor:'#c8f04e',pointRadius:4,tension:0.35,fill:false,order:0,z:10});
     legHtml.push(legItem('Net Demand','#c8f04e',true));
     $('monthly-legend').innerHTML=legHtml.reverse().join('');
     mkChart('monthlyChart',{type:'bar',data:{labels:MONTHS,datasets:dsets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:TT},scales:{x:{grid:{display:false},ticks:{color:TC}},y:{stacked:true,grid:{color:GC},ticks:{color:TC,callback:v=>v+' GWh'}}}}});
@@ -1621,11 +1718,20 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
 
   // ── D: Storage SoC ───────────────────────────────────────────────────
   {
-    // Populate storage selector with detected storage techs
-    const socStorSel = $('soc-stor-sel');
+    // Grab selectors — cloneNode to wipe any stacked listeners from prior renders
+    const _socStorOld  = $('soc-stor-sel');
+    const _socMonthOld = $('soc-month-sel');
+    const _socWeekOld  = $('soc-week-sel');
+    const socStorSel   = _socStorOld  ? _socStorOld.cloneNode(true)  : null;
+    const socMonthSel  = _socMonthOld ? _socMonthOld.cloneNode(true) : null;
+    const socWeekSel   = _socWeekOld  ? _socWeekOld.cloneNode(true)  : null;
+    if (_socStorOld  && socStorSel)  _socStorOld.replaceWith(socStorSel);
+    if (_socMonthOld && socMonthSel) _socMonthOld.replaceWith(socMonthSel);
+    if (_socWeekOld  && socWeekSel)  _socWeekOld.replaceWith(socWeekSel);
+
+    // Rebuild storage selector from detected storTechs
     if (socStorSel) {
-      // Clear all options except "Both Storage" (first option)
-      while (socStorSel.options.length > 1) socStorSel.remove(1);
+      socStorSel.innerHTML = '<option value="all">All Storages</option>';
       storTechs.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s; opt.textContent = s;
@@ -1633,9 +1739,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
       });
     }
 
-    // Disable week selector when Full Year is chosen
-    const socMonthSel = $('soc-month-sel');
-    const socWeekSel  = $('soc-week-sel');
+    // Wire up events (fresh — no stacked duplicates)
     if (socMonthSel && socWeekSel) {
       socMonthSel.addEventListener('change', () => {
         socWeekSel.disabled = socMonthSel.value === 'all';
@@ -1653,7 +1757,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
       const allVals = hourly.map(h => +(h['soc_' + s + '_mwh'] ?? 0));
       const cap = caps[s];
       const maxMwh = cap?.energy_mwh ?? cap?.MWh ?? ((cap?.power_mw ?? cap?.capacity_mw ?? 0) * (cap?.max_hours ?? 4));
-      if (!allVals.some(v => v > 0.001)) return;
+      if (!allVals.some(v => Math.abs(v) > 0.001)) return;
       const dis = eMix[s]?.discharge_gwh ?? 0, chg = eMix[s]?.charge_gwh ?? 0;
       const lowThresh = maxMwh > 0 ? maxMwh * 0.2 : (Math.max(...allVals) * 0.2);
       const stressHrs = allVals.filter(v => v > 0 && v <= lowThresh).length;
@@ -1698,7 +1802,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
         const cap = caps[s];
         const maxMwh = cap?.energy_mwh ?? cap?.MWh ?? ((cap?.power_mw ?? cap?.capacity_mw ?? 0) * (cap?.max_hours ?? 4));
         const col = tc(s);
-        if (!vals.some(v => v > 0.001)) return;
+        if (!vals.some(v => Math.abs(v) > 0.001)) return;
         dsets.push({ label: `${s} SoC`, data: vals, borderColor: col, backgroundColor: col + '38', borderWidth: 1.5, fill: true, pointRadius: 0, tension: 0.3 });
         if (maxMwh > 0) {
           dsets.push({ label: `${s} Max (${fmt(maxMwh, 0)} MWh)`, data: Array(vals.length).fill(+maxMwh.toFixed(1)), borderColor: col + '77', borderWidth: 1, borderDash: [6, 4], pointRadius: 0, fill: false });
@@ -1746,10 +1850,15 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
   // ── D: Storage Performance table ──────────────────────────────────────
   {
     const perfEl=$('storage-perf-content'),storPerfSection=$('storage-perf-section');
-    if(storTechs.length===0){if(storPerfSection)storPerfSection.style.display='none';}
+    // Only show storage technologies that were actually selected by the optimiser (non-zero capacity)
+    const activeStorPerf = storTechs.filter(s => {
+      const cap = caps[s] || {};
+      return (cap.power_mw ?? cap.capacity_mw ?? 0) > 0.001;
+    });
+    if(activeStorPerf.length===0){if(storPerfSection)storPerfSection.style.display='none';}
     else{
       if(storPerfSection)storPerfSection.style.display='';
-      const rows=storTechs.map(s=>{
+      const rows=activeStorPerf.map(s=>{
         const cap=caps[s]||{};
         const energy_mwh=cap.energy_mwh??cap.MWh??0,power_mw=cap.power_mw??cap.capacity_mw??0;
         const cRatio=power_mw>0&&energy_mwh>0?(energy_mwh/power_mw).toFixed(1):'—';
@@ -1800,14 +1909,24 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtCur(ctx.raw,cur)}/yr`}}},
       scales:{x:{grid:{display:false},ticks:{color:TC,maxRotation:30}},y:{stacked:true,grid:{color:GC},ticks:{color:TC,callback:v=>humanShort(v,1)},beginAtZero:true}}}});
 
-    // Cost insight cards
-    const sysCostItems=[
-      {num: fmtCur(sysStats.total_annualised_capex,cur), lbl:'Total annualised CAPEX/yr'},
-      {num: fmtCur(sysStats.total_annual_opex,cur),      lbl:'Total annual OPEX/yr'},
-      {num: fmtCur(sysStats.total_annual_fuel,cur),      lbl:'Total fuel cost/yr'},
-      {num: fmtCur(sysStats.total_capex,cur),            lbl:'Total overnight CAPEX'},
-    ];
-    $('cost-insights').innerHTML=sysCostItems.map(c=>insightCard(c.num,c.lbl)).join('');
+    // Cost insight cards — CAPEX / OPEX / Fuel / Total CAPEX / CO₂ Tax
+    {
+      // Use the pre-computed value from model.py (Grid imports correctly excluded).
+      // fmtCur now renders '0 €' for zero so the card always shows a number.
+      const sysCo2Tax  = co2Summ?._system?.total_carbon_tax_eur ?? 0;
+      const co2TaxRate = co2Summ?._system?.carbon_tax_rate_eur_per_tco2
+                         ?? meta.carbon_tax_rate ?? 0;
+
+      const sysCostItems=[
+        {num: fmtCur(sysStats.total_annualised_capex,cur), lbl:'Total annualised CAPEX/yr'},
+        {num: fmtCur(sysStats.total_annual_opex,cur),      lbl:'Total annual OPEX/yr'},
+        {num: fmtCur(sysStats.total_annual_fuel,cur),      lbl:'Total fuel cost/yr'},
+        {num: fmtCur(sysStats.total_capex,cur),            lbl:'Total overnight CAPEX'},
+        {num: fmtCur(sysCo2Tax,cur),
+         lbl:`CO₂ tax · ${fmtLcoe(co2TaxRate)}\u00a0${cur}/tCO₂`},
+      ];
+      $('cost-insights').innerHTML=sysCostItems.map(c=>insightCard(c.num,c.lbl)).join('');
+    }
   }
 
   // ── E: Fuel Consumption chart ─────────────────────────────────────────
@@ -1874,7 +1993,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
         data: {
           labels: fuelItems.map(x => x.tech),
           datasets: [{
-            label: 'Fuel (t/yr)',
+            label: 'Fuel (tonnes/yr)',
             data: fuelItems.map(x => x.tonnes),
             backgroundColor: fuelItems.map(x => tc(x.tech) + 'BB'),
             borderColor:     fuelItems.map(x => tc(x.tech) + 'FF'),
@@ -1886,43 +2005,91 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
           plugins: {
             legend: { display: false },
             tooltip: { ...TT, callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${humanShort(ctx.raw, 1)} t/yr`,
+              label: ctx => `${fmt(ctx.raw, 0)} tonnes/yr`,
             }},
           },
           scales: {
             x: { grid: { display: false }, ticks: { color: TC, maxRotation: 30 } },
-            y: { grid: { color: GC }, ticks: { color: TC, callback: v => humanShort(v, 1) + ' t' }, beginAtZero: true },
+            y: { grid: { color: GC }, ticks: { color: TC, callback: v => fmt(v, 0) + ' t' }, beginAtZero: true },
           },
         },
       });
 
-      // Insight cards — top fuels
+      // Insight cards — top fuels (4-digit rule: 6000 → "6000 tonnes", 12000 → "12 k tonnes")
       if (fuelInsEl) {
         const topItems = fuelItems.slice(0, 4);
         fuelInsEl.innerHTML = topItems.map(x =>
-          insightCard(humanShort(x.tonnes, 1) + ' t', `${x.tech} fuel/yr`)
+          insightCard(fmt(x.tonnes, 0) + ' tonnes', `${x.tech} fuel/yr`)
         ).join('');
       }
     }
   }
 
-  // ── F: CO2 bar ────────────────────────────────────────────────────────
+  // ── F: CO2 bar — show zero bar if no emissions ───────────────────────
   {
     const items=[];
-    allTechs.forEach(t=>{const v=co2Summ[t]?.annual_tco2??co2Summ[t]?.co2_t??0;if(v>0)items.push({tech:t,val:+v.toFixed(1)});});
-    items.sort((a,b)=>b.val-a.val);
-    const co2Canvas=$('co2Chart'),co2Msg=$('co2-nodata');
-    if(items.length){co2Canvas.style.display='';co2Msg.style.display='none';mkChart('co2Chart',{type:'bar',data:{labels:items.map(x=>x.tech),datasets:[{label:'tCO\u2082/yr',data:items.map(x=>x.val),backgroundColor:items.map(x=>tc(x.tech)+'BB'),borderColor:items.map(x=>tc(x.tech)+'FF'),borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.raw.toLocaleString()} tCO\u2082/yr`}}},scales:{x:{grid:{display:false},ticks:{color:TC}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>v+' t'},beginAtZero:true}}}});}
-    else{if(_charts['co2Chart']){_charts['co2Chart'].destroy();delete _charts['co2Chart'];}co2Canvas.style.display='none';co2Msg.style.display='flex';}
+    allTechs.forEach(t=>{
+      const v=co2Summ[t]?.annual_tco2??co2Summ[t]?.co2_t??0;
+      items.push({tech:t,val:+Number(v).toFixed(1)});
+    });
+    // Only keep active techs (present in capacities with non-zero capacity)
+    const activeItems = items.filter(x=>{
+      const c=caps[x.tech];
+      return (c?.capacity_mw??c?.power_mw??0)>0.001;
+    });
+    activeItems.sort((a,b)=>b.val-a.val);
+
+    const co2Canvas=$('co2Chart'), co2Msg=$('co2-nodata');
+    // Always render chart; show "0" bars for zero-emission scenario
+    if(co2Canvas) co2Canvas.style.display='';
+    if(co2Msg)    co2Msg.style.display='none';
+
+    if(activeItems.length) {
+      mkChart('co2Chart',{
+        type:'bar',
+        data:{labels:activeItems.map(x=>x.tech),datasets:[{
+          label:'tCO\u2082/yr',
+          data:activeItems.map(x=>x.val),
+          backgroundColor:activeItems.map(x=>tc(x.tech)+'BB'),
+          borderColor:activeItems.map(x=>tc(x.tech)+'FF'),
+          borderWidth:1,borderRadius:4
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.raw.toLocaleString()} tCO\u2082/yr`}}},
+          scales:{
+            x:{grid:{display:false},ticks:{color:TC}},
+            y:{grid:{color:GC},ticks:{color:TC,callback:v=>v+' t'},beginAtZero:true}
+          }
+        }
+      });
+    } else {
+      if(_charts['co2Chart']){_charts['co2Chart'].destroy();delete _charts['co2Chart'];}
+    }
   }
 
-  // ── G: CF bars ──────────────────────────────────────────────────────
+  // ── F: CF bars — generators + storage ────────────────────────────────
   {
     const items=[];
-    genTechs.forEach(t=>{const cap=caps[t]?.capacity_mw??0;if(cap<0.001)return;const genMwh=(eMix[t]?.annual_gwh??0)*1000;const cf=genMwh/(cap*8760)*100;if(cf>0)items.push({name:t,cf:+cf.toFixed(1),color:tc(t)});});
+    genTechs.forEach(t=>{
+      const cap=caps[t]?.capacity_mw??0; if(cap<0.001)return;
+      const genMwh=(eMix[t]?.annual_gwh??0)*1000;
+      const cf=genMwh/(cap*8760)*100;
+      if(cf>0) items.push({name:t,cf:+cf.toFixed(1),color:tc(t)});
+    });
+    storTechs.forEach(s=>{
+      const cap=caps[s]?.power_mw??caps[s]?.capacity_mw??0; if(cap<0.001)return;
+      // Use pre-computed capacity_factor from energy_mix if available, else derive
+      const cf_raw = eMix[s]?.capacity_factor != null
+        ? eMix[s].capacity_factor * 100
+        : ((eMix[s]?.discharge_gwh??0)*1000/(cap*8760)*100);
+      if(cf_raw>0) items.push({name:s+' (dis)',cf:+cf_raw.toFixed(1),color:tc(s)});
+    });
     items.sort((a,b)=>b.cf-a.cf);
     $('cf-bars').innerHTML=items.map(c=>cfHtml(c.name,c.cf,c.color)).join('');
-    setTimeout(()=>items.forEach((c,i)=>setTimeout(()=>{const el=$('cf-'+c.name);if(el)el.style.width=Math.min(c.cf,100)+'%';},i*110)),600);
+    setTimeout(()=>items.forEach((c,i)=>setTimeout(()=>{
+      const safeId=c.name.replace(/[^a-zA-Z0-9_-]/g,'_');
+      const el=$('cf-'+safeId);if(el)el.style.width=Math.min(c.cf,100)+'%';
+    },i*110)),600);
   }
 
   // ── H: Diurnal profile ────────────────────────────────────────────────
@@ -2164,7 +2331,7 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
       {el:'kpi-co2',val:co2Int,dec:1},
       {el:'kpi-peak',val:peakMw,dec:1},
     ];
-    counters.forEach(({el:id,val,dec,lcoe})=>{
+    counters.forEach(({el:id,val,dec,lcoe:isLcoe})=>{
       const el=$(id);if(!el)return;
       const sup=el.querySelector('sup');
       const supHtml=sup?sup.outerHTML:'';
@@ -2172,15 +2339,73 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
       const step=(now)=>{
         const t=Math.min((now-start)/dur,1);
         const ease=1-Math.pow(1-t,3);
-        const cur=lcoe?fmtLcoe(val*ease):fmt(val*ease,dec);
-        el.innerHTML=cur+supHtml;
+        const curVal=isLcoe?fmtLcoe(val*ease):fmt(val*ease,dec);
+        el.innerHTML=curVal+supHtml;
         if(t<1)requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
     });
   }
 
+  // ── Brand / Equipment specification cards — always shown for active techs ─
+  {
+    const brandData = d.brand_technologies || {};
+    const strip   = $('brand-tech-strip');
+    const cardsEl = $('brand-tech-cards');
+    if (strip && cardsEl && allActiveTechs.length > 0) {
+      strip.style.display = '';
+
+      // Engineering schematic icons — IEC/technical drawing style, stroke-based
+      const TECH_ICON = {
+        Wind:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#1565FF" stroke-width="1.4" stroke-linecap="round"><line x1="20" y1="38" x2="20" y2="22"/><rect x="17" y="35" width="6" height="3" rx="0.5" fill="none"/><circle cx="20" cy="21" r="1.8" fill="#1565FF" stroke="none"/><line x1="20" y1="19" x2="15" y2="8"/><line x1="21.5" y1="22.5" x2="32" y2="18"/><line x1="18.5" y1="22.5" x2="15" y2="34"/></svg>`,
+        Solar:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#FFD600" stroke-width="1.4" stroke-linecap="round"><rect x="5" y="13" width="30" height="18" rx="1"/><line x1="5" y1="22" x2="35" y2="22"/><line x1="14" y1="13" x2="14" y2="31"/><line x1="23" y1="13" x2="23" y2="31"/><line x1="28" y1="31" x2="28" y2="36"/><line x1="12" y1="36" x2="28" y2="36"/><line x1="12" y1="31" x2="12" y2="36"/></svg>`,
+        Hydro:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#00C9A7" stroke-width="1.4" stroke-linecap="round"><polygon points="5,8 10,32 30,32 35,8" fill="none"/><rect x="5" y="6" width="30" height="4" rx="0.5"/><rect x="15" y="22" width="10" height="8" rx="0.5"/><line x1="20" y1="20" x2="20" y2="22"/><line x1="13" y1="20" x2="27" y2="20"/><line x1="10" y1="32" x2="30" y2="32"/></svg>`,
+        Geothermal:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#FF5722" stroke-width="1.4" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="36"/><line x1="14" y1="4" x2="26" y2="4"/><path d="M14 13 Q20 9 26 13" fill="none"/><path d="M14 20 Q20 16 26 20" fill="none"/><path d="M14 27 Q20 23 26 27" fill="none"/><circle cx="20" cy="33" r="2.5"/></svg>`,
+        Biomass:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#2ECC40" stroke-width="1.4" stroke-linecap="round"><rect x="8" y="17" width="18" height="19" rx="1"/><line x1="8" y1="27" x2="26" y2="27"/><line x1="26" y1="22" x2="34" y2="22"/><line x1="26" y1="30" x2="34" y2="30"/><path d="M12 17 Q13 11 12 7" fill="none"/><path d="M17 17 Q18 9 17 5" fill="none"/><path d="M22 17 Q23 11 22 7" fill="none"/></svg>`,
+        Biogas:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#C6F000" stroke-width="1.4" stroke-linecap="round"><rect x="6" y="20" width="28" height="16" rx="1"/><path d="M6 20 Q6 8 20 8 Q34 8 34 20" fill="none"/><line x1="20" y1="8" x2="20" y2="4"/><line x1="16" y1="4" x2="24" y2="4"/><line x1="14" y1="28" x2="14" y2="36"/><line x1="26" y1="28" x2="26" y2="36"/></svg>`,
+        WTE:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#FF4081" stroke-width="1.4" stroke-linecap="round"><rect x="5" y="22" width="23" height="14" rx="1"/><rect x="24" y="13" width="9" height="23" rx="1"/><line x1="7" y1="18" x2="26" y2="18"/><line x1="10" y1="18" x2="10" y2="22"/><line x1="16" y1="18" x2="16" y2="22"/><line x1="22" y1="18" x2="22" y2="22"/><line x1="27" y1="13" x2="27" y2="8"/><line x1="31" y1="13" x2="31" y2="10"/></svg>`,
+        BESS:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#00E676" stroke-width="1.4" stroke-linecap="round"><rect x="4" y="11" width="32" height="22" rx="1"/><line x1="4" y1="20" x2="36" y2="20"/><rect x="14" y="8" width="5" height="3" rx="0.5"/><rect x="21" y="8" width="5" height="3" rx="0.5"/><line x1="10" y1="15" x2="10" y2="26"/><line x1="20" y1="24" x2="20" y2="27"/><line x1="18" y1="24" x2="22" y2="24"/><line x1="30" y1="15" x2="30" y2="18"/><line x1="28" y1="15" x2="32" y2="15"/></svg>`,
+        PHS:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#D500F9" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="5" width="36" height="8" rx="1"/><line x1="20" y1="13" x2="20" y2="26"/><rect x="13" y="26" width="14" height="9" rx="1"/><line x1="9" y1="35" x2="31" y2="35"/><line x1="17" y1="29" x2="23" y2="31"/><line x1="17" y1="31" x2="23" y2="29"/></svg>`,
+        Hydrogen:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#00E5FF" stroke-width="1.4" stroke-linecap="round"><rect x="6" y="8" width="28" height="28" rx="1"/><line x1="6" y1="24" x2="34" y2="24"/><line x1="13" y1="13" x2="13" y2="21"/><line x1="19" y1="13" x2="19" y2="21"/><line x1="13" y1="17" x2="19" y2="17"/><line x1="25" y1="27" x2="25" y2="35"/><line x1="23" y1="29" x2="27" y2="29"/><line x1="23" y1="33" x2="27" y2="33"/><line x1="23" y1="31" x2="27" y2="31"/></svg>`,
+        Grid:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#64748B" stroke-width="1.4" stroke-linecap="round"><circle cx="16" cy="17" r="7"/><circle cx="24" cy="23" r="7"/><line x1="16" y1="4" x2="16" y2="10"/><line x1="24" y1="30" x2="24" y2="36"/><line x1="12" y1="4" x2="20" y2="4"/><line x1="20" y1="36" x2="28" y2="36"/></svg>`,
+        'Natural Gas':`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#90A4AE" stroke-width="1.4" stroke-linecap="round"><circle cx="20" cy="22" r="10"/><line x1="20" y1="4" x2="20" y2="12"/><line x1="20" y1="32" x2="20" y2="38"/><line x1="14" y1="16" x2="26" y2="28"/><line x1="26" y1="16" x2="14" y2="28"/><circle cx="20" cy="22" r="3"/></svg>`,
+        Biodiesel:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#D97706" stroke-width="1.4" stroke-linecap="round"><rect x="8" y="14" width="14" height="18" rx="1"/><rect x="10" y="10" width="10" height="4" rx="0.5"/><line x1="22" y1="20" x2="32" y2="16"/><line x1="22" y1="26" x2="32" y2="30"/><circle cx="34" cy="23" r="4"/><line x1="15" y1="18" x2="15" y2="28"/><line x1="18" y1="18" x2="18" y2="28"/></svg>`,
+        Diesel:`<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#E53935" stroke-width="1.4" stroke-linecap="round"><rect x="8" y="14" width="14" height="18" rx="1"/><rect x="10" y="10" width="10" height="4" rx="0.5"/><line x1="22" y1="20" x2="32" y2="16"/><line x1="22" y1="26" x2="32" y2="30"/><circle cx="34" cy="23" r="4"/><line x1="15" y1="18" x2="15" y2="28"/><line x1="18" y1="18" x2="18" y2="28"/></svg>`,
+      };
+      const DEFAULT_ICON = `<svg viewBox="0 0 40 40" width="36" height="36" fill="none" stroke="#7a8a9e" stroke-width="1.4" stroke-linecap="round"><circle cx="20" cy="20" r="12"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="20" y1="26" x2="20" y2="32"/><line x1="8" y1="20" x2="14" y2="20"/><line x1="26" y1="20" x2="32" y2="20"/></svg>`;
+
+      cardsEl.innerHTML = allActiveTechs.map(t => {
+        const col    = tc(t);
+        const icon   = TECH_ICON[t] || DEFAULT_ICON;
+        const brand  = brandData[t] || null;
+        const cap    = caps[t];
+        const capMw  = cap?.capacity_mw ?? cap?.power_mw ?? 0;
+        const capMwh = cap?.energy_mwh ?? null;
+        const sizeStr = capMwh
+          ? `${fmt(capMw,1)} MW · ${fmt(capMwh,0)} MWh`
+          : `${fmt(capMw,1)} MW`;
+        return `<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--panel-border);border-left:3px solid ${col};border-radius:8px;padding:10px 12px;min-width:140px;max-width:210px;flex:1 1 140px;transition:border-color .2s" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='var(--panel-border)';this.style.borderLeftColor='${col}'">
+          <div style="flex-shrink:0">${icon}</div>
+          <div style="min-width:0;flex:1">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:${col};margin-bottom:2px">${t}</div>
+            <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:600;color:var(--text);line-height:1.1">${sizeStr}</div>
+            ${brand
+              ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);margin-top:3px;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${brand}</div>`
+              : `<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:3px;letter-spacing:.04em;text-transform:uppercase;opacity:.55">add brand in CSV</div>`
+            }
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
 } // end renderDashboard()
+
+// ── Deduplication helper for chart legends ────────────────────────────────
+function uniqueLegend(items){
+  const seen=new Set();
+  return items.filter(i=>{ if(seen.has(i.label)) return false; seen.add(i.label); return true; });
+}
 
 // ── Cost breakdown chart helper — driven by view selector ─────────────────
 function renderCostBreakChart(allTechs, lcoeSumm, eMix, cur, view) {
@@ -2202,17 +2427,51 @@ function renderCostBreakChart(allTechs, lcoeSumm, eMix, cur, view) {
     let v=l[vm.key];
     if(v==null && view==='lcoe') v=l['lcos_per_mwh'];
     if(v==null || v===0) return;
-    items.push({tech:t,val:+(v/vm.div).toFixed(1)});
+    items.push({tech:t,val:+(v/vm.div).toFixed(3)});
   });
   items.sort((a,b)=>b.val-a.val);
 
   if(!items.length) { if(_charts['costBreakChart']){_charts['costBreakChart'].destroy();delete _charts['costBreakChart'];} return; }
 
+  // ── Outlier handling for LCOE/LCOS view using IQR method ──────────────
+  // No hardcoded cap — works across any currency magnitude.
+  let yMax = undefined;
+  if (view === 'lcoe' && items.length >= 3) {
+    const sorted = [...items].map(x => x.val).sort((a, b) => a - b);
+    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+    const iqr = q3 - q1;
+    const upperFence = q3 + 3.0 * iqr;   // 3×IQR = mild threshold for energy data
+    const hasOutlier = sorted[sorted.length - 1] > upperFence;
+    if (hasOutlier) {
+      // Clip y-axis to fence; outlier label annotated with arrow indicator
+      yMax = Math.ceil(upperFence * 1.15);
+      items.forEach(x => { if (x.val > yMax) x.clipped = true; });
+      $('cost-break-sub').textContent = vm.sub + ' — ⚠ outlier(s) clipped for readability';
+    }
+  }
+
   mkChart('costBreakChart',{type:'bar',
-    data:{labels:items.map(x=>x.tech),datasets:[{label:vm.suffix,data:items.map(x=>x.val),backgroundColor:items.map(x=>tc(x.tech)+'BB'),borderColor:items.map(x=>tc(x.tech)+'FF'),borderWidth:1,borderRadius:4}]},
+    data:{labels:items.map(x=>x.tech+(x.clipped?'  ↑':'')),
+          datasets:[{label:vm.suffix,data:items.map(x=>Math.min(x.val,yMax??Infinity)),
+            backgroundColor:items.map(x=>tc(x.tech)+'BB'),
+            borderColor:items.map(x=>tc(x.tech)+'FF'),
+            borderWidth:1,borderRadius:4}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.raw} ${vm.suffix}`}}},
-      scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>{const s=vm.suffix;return v+(s.startsWith('k')||s.startsWith('M')?' '+s:' '+s);}},beginAtZero:true},y:{grid:{display:false},ticks:{color:TC}}}}});
+      plugins:{legend:{display:false},
+        tooltip:{...TT,callbacks:{label:ctx=>{
+          const orig=items[ctx.dataIndex];
+          return orig.clipped
+            ? `${orig.val.toFixed(2)} ${vm.suffix} (clipped in chart)`
+            : `${ctx.raw} ${vm.suffix}`;
+        }}}},
+      scales:{
+        x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+' '+vm.suffix},
+           beginAtZero:true, ...(yMax!=null?{max:yMax}:{})},
+        y:{grid:{display:false},ticks:{color:TC}}
+      }
+    }
+  });
 }
 
 
@@ -2222,30 +2481,46 @@ function drawDispatchMonth() {
   const weekSel  = $('dp-week-sel');
   if (!techSel || !monthSel) return;
 
-  const tech  = techSel.value;
-  const mo    = parseInt(monthSel.value, 10);
-  const week  = weekSel ? weekSel.value : 'all';
-  if (!tech || isNaN(mo)) return;
+  const tech    = techSel.value;
+  const moVal   = monthSel.value;
+  const isFullYear = (moVal === 'all' || moVal === '' || moVal === null);
+  const mo      = isFullYear ? NaN : parseInt(moVal, 10);
+  const week    = weekSel ? weekSel.value : 'all';
+  if (!tech) return;
+  if (!isFullYear && isNaN(mo)) return;
 
-  // Hour range for selected month
-  const moStart = mo === 0 ? 0 : MONTH_BREAKS[mo - 1];
-  const moEnd   = mo < 11  ? MONTH_BREAKS[mo] : 8760;
+  // Disable week selector for full year
+  if (weekSel) weekSel.disabled = isFullYear;
 
-  // Optionally narrow to a specific week
-  let sliceStart = moStart, sliceEnd = moEnd;
-  if (week !== 'all') {
-    const wk = parseInt(week, 10);
-    sliceStart = moStart + wk * 168;
-    sliceEnd   = Math.min(sliceStart + 168, moEnd);
+  // Hour range
+  let sliceStart = 0, sliceEnd = 8760;
+  if (!isFullYear) {
+    sliceStart = mo === 0 ? 0 : MONTH_BREAKS[mo - 1];
+    sliceEnd   = mo < 11  ? MONTH_BREAKS[mo] : 8760;
+    if (week !== 'all') {
+      const wk = parseInt(week, 10);
+      sliceStart = sliceStart + wk * 168;
+      sliceEnd   = Math.min(sliceStart + 168, sliceEnd);
+    }
   }
 
-  const slice  = _dpHourly.filter(h => h.hour >= sliceStart && h.hour < sliceEnd);
+  // Full year: sample every 6h to keep chart responsive
+  let slice = _dpHourly.filter(h => h.hour >= sliceStart && h.hour < sliceEnd);
+  if (isFullYear && slice.length > 1460) {
+    slice = slice.filter((_, i) => i % 6 === 0);
+  }
   const legendEl = $('dp-all-legend');
   const wrapEl   = $('dp-chart-wrap');
 
-  // X-axis labels shared by both modes
+  // X-axis labels — for full year show month names, for month view show day labels
   const labels = slice.map((h, i) => {
-    const hod = i % 24;
+    if (isFullYear) {
+      // Show month label at first sample of each month
+      const mo = getMonth(h.hour);
+      const prevMo = i > 0 ? getMonth(slice[i-1].hour) : -1;
+      return mo !== prevMo ? MONTHS[mo] : '';
+    }
+    const hod = h.hour % 24;
     if (hod !== 0) return '';
     const hMo     = getMonth(h.hour);
     const dayInMo = Math.floor((h.hour - (hMo === 0 ? 0 : MONTH_BREAKS[hMo-1])) / 24) + 1;
@@ -2350,7 +2625,7 @@ function drawDispatchMonth() {
     const demY = slice.map(h => +(h.gross_demand_mw ?? 0).toFixed(3));
     traces.push({
       x: xLabels, y: demY, name: 'Gross Demand', type: 'scatter', mode: 'lines',
-      line: { color: '#c8f04e', width: 2.5, shape: 'spline', smoothing: 0.4 },
+      line: { color: '#c8f04e', width: 2, shape: 'linear' },
       hovertemplate: '<b>Gross Demand</b>: %{y:.2f} MW<extra></extra>',
     });
     // --- Demand + charging (MW) overlay --------------------------------
@@ -2370,13 +2645,19 @@ function drawDispatchMonth() {
       name: 'Demand + Charging',
       type: 'scatter',
       mode: 'lines',
-      line: { color: '#c8f04e', width: 2, dash: 'dash', shape: 'spline' },
+      line: { color: '#c8f04e', width: 1.5, dash: 'dot', shape: 'linear' },
       hovertemplate: '<b>Demand + Charging</b>: %{y:.2f} MW<extra></extra>'
     });
     // --------------------------------------------------------------------
 
 
-    const titleSuffix = week === 'all' ? `${MONTHS[mo]} — Full Month` : `${MONTHS[mo]} — Week ${parseInt(week)+1}`;
+    const titleSuffix = isFullYear ? 'Full Year' : (week === 'all' ? `${MONTHS[mo]} — Full Month` : `${MONTHS[mo]} — Week ${parseInt(week)+1}`);
+    // For full year: tick every ~month; for month: tick every day
+    const tickStride  = isFullYear ? Math.max(1, Math.floor(xLabels.length / 12)) : 24;
+    const tickVals    = xLabels.filter((_, i) => i % tickStride === 0);
+    const tickTexts   = isFullYear
+      ? tickVals.map(l => l)
+      : tickVals.map(l => l.split(' ').slice(0,2).join(' '));
 
     Plotly.react(plotDiv, traces, {
       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
@@ -2386,8 +2667,8 @@ function drawDispatchMonth() {
       xaxis: {
         tickfont: { size: 10 }, gridcolor: 'rgba(0,0,0,0)', zeroline: false,
         tickmode: 'array',
-        tickvals: xLabels.filter((_, i) => i % 24 === 0),
-        ticktext: xLabels.filter((_, i) => i % 24 === 0).map(l => l.split(' ').slice(0,2).join(' ')),
+        tickvals: tickVals,
+        ticktext: tickTexts,
       },
       yaxis: {
         title: { text: 'MW', font: { size: 10 } }, tickfont: { size: 10 },
@@ -2771,6 +3052,30 @@ function normaliseLite(d) {
   }, 200);
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// PDF EXPORT — forces all Chart.js charts to render as static images,
+// then triggers the browser print dialog which can save as PDF.
+// ═══════════════════════════════════════════════════════════════════════
+function exportPDF() {
+  // Show a brief status message
+  const btn = $('export-btn');
+  if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
+
+  // Give browser a frame to finish any pending renders, then print
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      window.print();
+      // Restore button after print dialog closes
+      setTimeout(() => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2h-1.5v1.5h-9V11H2zm5.25-9.5v7.19L4.78 6.22 3.72 7.28 8 11.56l4.28-4.28-1.06-1.06-2.47 2.47V1.5H7.25z"/></svg> Export PDF`;
+        }
+      }, 1500);
+    }, 200);
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // CSV EXPORT — download current scenario data as CSV
