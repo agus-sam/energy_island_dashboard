@@ -96,6 +96,16 @@
   .chart-wrap{position:relative}
 
   /* LEGEND */
+
+function uniqueLegend(items){
+  const seen=new Set(); 
+  return items.filter(i=>{
+    if(seen.has(i.label)) return false;
+    seen.add(i.label); 
+    return true;
+  });
+}
+
   .legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:16px}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);transition:color .2s}
   .legend-item:hover{color:var(--text)}
@@ -756,11 +766,11 @@ Chart.defaults.font.size   = 10;
 
 const MONTHS       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_BREAKS = [744,1416,2160,2880,3624,4344,5088,5832,6552,7296,8016];
-const STACK_ORDER  = ['WTE','Biomass', 'Geothermal','Hydro','Biogas','Wind','Solar'];
+const STACK_ORDER  = ['WTE','Biomass','Geothermal','Hydro','Biogas','Solar','Wind'];
 const STORAGE_ORDER = ['PHS','BESS','Hydrogen'];
 
-const FOSSIL_ORDER = ['Biodiesel', 'Natural Gas',];
-const FOSSIL       = new Set(['Biodiesel','Natural Gas']);
+const FOSSIL_ORDER = ['Biodiesel','Natural Gas','Grid'];
+const FOSSIL       = new Set(['Biodiesel','Natural Gas','Grid']);
 const VRE_SET      = new Set(['Solar','Wind']);
 const GC           = '#131a24';
 const TC           = '#7a8a9e';
@@ -780,7 +790,8 @@ const KNOWN_COLORS = {
   Hydrogen:   '#00E5FF',  // electric cyan               (~185°)
   // ── Fossil — warm reds/greys, internally distinct ────────────────
   'Natural Gas': '#90A4AE',  // blue-grey                   (achromatic)
-  Biodiesel:  '#D97706',  // warm amber                   (~38°)
+  Biodiesel:  '#D97706',
+  Grid:       '#64748B',  // warm amber                   (~38°)
   CCGT:       '#FFA726',  // vivid amber-orange          (~35°)
   OCGT:       '#FFE57F',  // pale gold                   (~50°)
   LNG:        '#7E57C2',  // medium indigo-purple         (~265°)
@@ -1055,6 +1066,20 @@ function renderDashboard(d) {
   const lcoeSumm = d.lcoe_summary || {};
   const co2Summ  = d.co2_summary  || {};
   const sysStats = lcoeSumm._system || d.kpis || {};
+
+  // ── Carbon tax banner card ─────────────────────────────────────
+  const carbonTax = co2Summ?._system?.total_carbon_tax_eur ?? 0;
+  const banner = document.getElementById('system-summary-banner');
+  if (banner) {
+    const card = document.createElement('div');
+    card.className='insight';
+    card.innerHTML=`
+      <div class="insight-num">${fmtCur(carbonTax, cur)}</div>
+      <div class="insight-label">Total Carbon Tax Paid</div>
+    `;
+    banner.appendChild(card);
+  }
+
   const hourly   = getHourly(d);
   const cur      = meta.currency || '€';
 
@@ -1168,7 +1193,7 @@ function renderDashboard(d) {
 
   hourly.forEach(h=>{
     const mo=getMonth(h.hour),hod=h.hour%24;
-    genTechs.forEach(t=>{ const v=Math.max(0,h['gen_'+t+'_mw']??0); mGen[t][mo]+=v/1000; dSum[t][hod]+=v; });
+    genTechs.forEach(t=>{ const v=Math.max(0,(h['avail_'+t+'_mw'] ?? h['gen_'+t+'_mw'] ?? 0)); mGen[t][mo]+=v/1000; dSum[t][hod]+=v; });
     storTechs.forEach(s=>{ mDis[s][mo]+=Math.max(0,h['dis_'+s+'_mw']??0)/1000; mChg[s][mo]+=Math.max(0,h['chg_'+s+'_mw']??0)/1000; });
     const nd=h.net_demand_mw??0,gd=h.gross_demand_mw??0;
     mDemand[mo]+=nd/1000;
@@ -1418,12 +1443,12 @@ y2:{type:'linear',position:'left',grid:{display:false},ticks:{display:false},sta
     const genStack = STACK_ORDER
         .filter(t => ordGen.includes(t));
     const fossilStack = ordGen.filter(t => FOSSIL.has(t));
-    genStack.forEach(t=>{const data=worstWeek.map(h=>+(Math.max(0,h['gen_'+t+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(t);dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1,
+    genStack.forEach(t=>{const data=worstWeek.map(h=>+(Math.max(0,(h['avail_'+t+'_mw'] ?? h['gen_'+t+'_mw'] ?? 0))).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(t);dsets.push({type:'bar',label:t,data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1,
           order:1});legHtml.push(legItem(t,c));}});
     STORAGE_ORDER.filter(s=>storTechs.includes(s)).forEach(s=>{const data=worstWeek.map(h=>+(Math.max(0,h['dis_'+s+'_mw']??0)).toFixed(3));if(data.some(v=>v>0.001)){const c=tc(s);dsets.push({type:'bar',label:s+' Dis.',data,backgroundColor:c+'BB',borderColor:c+'FF',stack:'dispatch',borderWidth:1,
           order:1});legHtml.push(legItem(s+' Dis.',c));}});
     fossilStack.forEach(t=>{
-      const data = worstWeek.map(h => +(Math.max(0,h['gen_'+t+'_mw']??0)).toFixed(3));
+      const data = worstWeek.map(h => +(Math.max(0,(h['avail_'+t+'_mw'] ?? h['gen_'+t+'_mw'] ?? 0))).toFixed(3));
       if(data.some(v=>v>0.001)){
         const c = tc(t);
         dsets.push({
@@ -2261,7 +2286,7 @@ function drawDispatchMonth() {
     if (plotDiv) plotDiv.style.display = 'block';
     if (_charts['dpMonthChart']) { _charts['dpMonthChart'].destroy(); delete _charts['dpMonthChart']; }
 
-    const STACK_ORD = ['WTE','Geothermal','Hydro','Biomass','Biogas','Wind','Solar'];
+    const STACK_ORD = ['WTE','Geothermal','Hydro','Biomass','Biogas','Solar','Wind'];
     // generation (non fossil)
     const genStack = [
       ...STACK_ORD.filter(t => _dpGenTechs.includes(t)),
